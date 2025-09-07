@@ -42,17 +42,24 @@ module io_interface
     end
 
     // ------------------------
-    // Enviar switches por UART (pulso único de tx_start)
+    // Enviar switches por UART (pulso de tx_start de varios ciclos)
     // ------------------------
+    reg [2:0] tx_start_cnt;
+
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            tx_start <= 1'b0;
-            tx_data  <= 8'h00;
-        end else if (!tx_busy && !tx_start) begin
-            tx_data  <= switches;
-            tx_start <= 1'b1; // pulso de inicio
+            tx_start_cnt <= 3'd0;
+            tx_start     <= 1'b0;
+            tx_data      <= 8'h00;
+        end else if (!tx_busy && tx_start_cnt == 3'd0) begin
+            tx_data      <= switches;
+            tx_start     <= 1'b1;
+            tx_start_cnt <= 3'd4; // duración del pulso: 4 ciclos
+        end else if (tx_start_cnt > 0) begin
+            tx_start     <= 1'b1;
+            tx_start_cnt <= tx_start_cnt - 1;
         end else begin
-            tx_start <= 1'b0; // baja después de un ciclo
+            tx_start     <= 1'b0;
         end
     end
 
